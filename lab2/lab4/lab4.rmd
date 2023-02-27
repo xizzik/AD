@@ -1,0 +1,221 @@
+---
+title: "Analiza Danych - Laboratorium 4"
+author:
+  name: Adrian Kowalski
+  affiliation: Politechnika Krakowska
+subtitle: Przegląd rozkładów prawdopodobieństwa
+output:
+  html_document:
+    df_print: paged
+---
+
+W tym notatniku zajmiemy się generowaniem prób z powszechnych rozkładów prawdopodobieństwa, inspekcją ich histogramów i wykresów pudełkowych. Pomoże to nam w przyszłości w wysuwaniu hipotez i podejmowaniu odpowiednich kroków przy analizie szczególnych typów danych. W dalszej części notanika przez $X$ oznaczamy zmienną losową o rozkładzie rozważanym w obecnym rozdziale, przez $A$ dowolny podzbiór $\mathbb{R}$.
+```{r, message=FALSE, echo=FALSE}
+library(tidyverse)
+set.seed(196883)
+```
+
+# Rozkład jednopunktowy
+
+Rozkład jednopunktowy skupiony w punkcie $a$ jest najbardziej trywialnym przypadkiem dyskretnego rozkładu prawdopodobieństwa. Jego PMF (Probability Mass Function) dana jest wzorem
+
+\[ P(X \in A) = \delta_a(A) = \left\{ \begin{array}{ll} 1 & a \in A, \\ 0 & a \notin A. \end{array} \right. \]
+
+Innymi słowy
+\[ P(X = a) = 1. \]
+
+Łatwo wywnioskować, że dystrybuanta takiego rozkładu ma postać
+\[ F(x) = \left\{ \begin{array}{ll} 1 & x >= a, \\ 0 & x < a. \end{array} \right. \]
+
+### Zadanie
+
+"Wygeneruj" próbę z rozkładu jednopunktowego, narysuj jej funkcję masy, histogram, wykres pudełkowy oraz dystrybuantę.
+
+# Rozkład dwupunktowy
+
+Nieco ciekawszym przypadkiem jest rozkład dwupunktowy skupiony w punktach $0,1$ z parametrem $p \in [0,1]$. PMF takiego rozkładu wyraża się wzorem
+\[ P(X \in A) = (1-p)\delta_0(A) + p\delta_1(A).\]
+Innymi słowy
+\[ P(X = n) = \left\{ \begin{array}{ll}  1- p & n =0,\\ p & n= 1.  \end{array} \right. \]
+Dystrybuanta takiego rozkładu wyraża się wzorem
+\[ F(x)  = \left\{ \begin{array}{ll} 0 & x<0, \\ \rm{min}(1-p,p) & 1 > x \geq 0,\\ 1 & x \geq 1. \end{array} \right. \]
+
+Średnia i wariancja tego rozkładu to
+\[ \mathbb{E}X = p, \, \mathbb{D}^2X = p(1-p). \]
+
+Uwaga: Naturalnym uogólnieniem tej konstrukcji jest rozkład $n$-punktowy, który jest kombinacją wypukłą $n$ rozkładów jednopunktowych skupionych w $n$ różnych punktach.
+
+Do generowania próby z rozkładu dwupunktowego skupionego w punktach $0,1$ w **R** służy nam funkcja *rbinom()* z parameterem $size=1$.
+
+```{r}
+coin_toss <- rbinom(n=100, size=1, prob=0.5)
+coin_toss
+```
+```{r, warning=FALSE}
+coin_toss_table <- as_tibble(coin_toss) %>% group_by(value) %>% count() %>% mutate(n = n/length(coin_toss))
+coin_toss_table
+```
+
+```{r, echo=FALSE}
+coin_toss_mass <- ggplot(data=coin_toss_table, aes(x=value, y=n)) +geom_segment(aes(x=value, y=rep(0, length(coin_toss_table)), xend=value, yend=n )) + geom_hline(yintercept = 0) + geom_hline(yintercept=0.5, linetype='dashed', alpha=0.3, color='blue') + geom_point(size = 4, color = 'red') + scale_x_continuous(breaks=c(0,1)) + xlab('Wartość zmiennej X') + ylab('Oszacowane prawdopodbieństwo') + ggtitle('Funkcja masy próby z rozkładu dwupunktowego z parametrem p=0.5') + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+
+```{r}
+coin_toss_mass
+```
+
+Równie dobrze mogliśmy wyrysować funkcję masy tego rozkładu za pomocą *dbinom()*.
+
+```{r}
+binom_mass <- tibble(point = c(0,1)) %>% mutate(mass = dbinom(point, size=1, prob=0.5))
+binom_mass
+```
+```{r, echo=FALSE}
+binom_mass <- ggplot(data=binom_mass, aes(x=point, y=mass)) +geom_segment(aes(x=point, y=rep(0, length(mass)), xend=point, yend=mass )) + geom_hline(yintercept = 0) + geom_hline(yintercept=0.5, linetype='dashed', alpha=0.3, color='blue') + geom_point(size = 4, color = 'red') + scale_x_continuous(breaks=c(0,1)) + xlab('Wartość zmiennej X') + ylab('Prawdopodbieństwo') + ggtitle('Funkcja masy rozkładu dwupunktowego z parametrem p=0.5') + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+```{r}
+binom_mass
+```
+Dystrybuantę otrzymujemy za pomocą polecenia *pbinom()*.
+```{r}
+binom_cdf <- tibble(points=seq(-2,2,0.25)) %>% mutate(cdf = pbinom(points, size=1, prob=0.5))
+binom_cdf
+```
+```{R, echo=FALSE}
+binom_cdf_plot <- ggplot(data=binom_cdf, aes(x=points, y=cdf)) + geom_point() + geom_segment(aes(x=(-2), y=0, xend=0, yend=0)) + geom_segment(aes(x=0, y=0.5, xend=1, yend=0.5)) + geom_segment(aes(x=1,y=1,xend=2,yend=1)) + xlab('x') + ylab('Wartość dystrybuanty w punkcie x') + ggtitle('Dystrybuanta rozkładu dwupunktowego')
+```
+```{r}
+binom_cdf_plot
+```
+
+
+# Rozkład dwumianowy (Bernouliego)
+
+Pewnego rodzaju uogólnieniem rozkładu dwupunktowego jest rozkład dwumianowy z parametrami $n \in \mathbb{N}, p \in [0,1]$. PMF takiego rozkładu wyraża się wzorem
+\[ P(X = k) = \left( \begin{array}{c} n \\ k\end{array} \right)p^k (1-p)^{n-k}. \]
+
+Średnia i wariancja tego rozkładu to
+\[ \mathbb{E}X = np, \, \mathbb{D}^2X = np(1-p). \]
+
+Do generownania próby z rozkładu dwumianowego używamy nadal funkcji *rbinom()*, tym razem z parametrem *size = n*. 
+```{r}
+bernouli_sample <-  as_tibble(rbinom(100, 5, p=0.5))
+bernouli_sample
+```
+
+Ponownie zobaczmy jak wygląda masa z naszej próby.
+
+```{r}
+bernouli_mass <- as_tibble(bernouli_sample) %>% group_by(value) %>% count() %>% mutate(n = n/length(bernouli_sample))
+```
+```{r}
+bernouli_mass
+```
+
+```{r, echo = FALSE}
+bernouli_mass_plot <- ggplot(data=bernouli_mass, aes(x=value, y=n)) +geom_segment(aes(x=value, y=rep(0, length(value)), xend=value, yend=n )) + geom_hline(yintercept = 0) + geom_hline(yintercept=0.5, linetype='dashed', alpha=0.3, color='blue') + geom_point(size = 4, color = 'red') + xlab('Wartość zmiennej X') + ylab('Oszacowane rawdopodbieństwo') + ggtitle('Funkcja masy z próby z rozkładu Bernouliego z parametrami p=0.5, n=5') + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+
+```{r}
+bernouli_mass_plot
+```
+
+```{r, echo=FALSE}
+bernouli_hist <- ggplot(data=bernouli_sample, aes(x=value)) + geom_histogram(bins = 5) + ggtitle('Histogram próby z rokładu Bernouliego z parametrami n=5, p=0.5') + xlab('Wartość zmiennej X') + ylab('Częstotliwość')
+```
+```{R}
+bernouli_hist
+```
+```{r}
+bernouli_sample2 <- as_tibble(rbinom(100, size=40, p=0.5))
+bernouli_sample2
+```
+
+```{r, echo=FALSE}
+bernouli_mass2 <- as_tibble(bernouli_sample2) %>% group_by(value) %>% count() %>% mutate(n = n/length(bernouli_sample))
+bernouli_mass_plot2 <- ggplot(data=bernouli_mass2, aes(x=value, y=n)) +geom_segment(aes(x=value, y=rep(0, length(value)), xend=value, yend=n )) + geom_hline(yintercept = 0) + geom_hline(yintercept=0.5, linetype='dashed', alpha=0.3, color='blue') + geom_point(size = 4, color = 'red') + xlab('Wartość zmiennej X') + ylab('Oszacowane rawdopodbieństwo') + ggtitle('Funkcja masy z próby z rozkładu Bernouliego z parametrami p=0.5, n=5') + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+```{r}
+bernouli_mass_plot2
+```
+```{r, echo=FALSE}
+bernouli_hist2 <- ggplot(data=bernouli_sample2, aes(x=value)) + geom_histogram(bins = 15) + ggtitle('Histogram próby z rokładu Bernouliego z parametrami n=40, p=0.5') + xlab('Wartość zmiennej X') + ylab('Częstotliwość')
+```
+
+```{r}
+bernouli_hist2
+```
+
+#### Ćwiczenie
+
+Narysuj dystrybuantę za pomocą powyższej próby oraz za pomocą funkcji *qbinom()*.
+
+# Rozkład Poissona
+
+Kolejnym rozkłądem, który rozważymy jest rozkład Poissona z paramterem $\lambda \in (0, \infty)$. Jego funkcja masy wyraża się wzorem
+
+\[ P(X = k) = \frac{\lambda^k}{k!} e^{-\lambda}. \]
+
+Średnia i wariancja tego rozkładu są równe
+
+\[ \mathbb{E}X = \lambda, \, \mathbb{D}^2 X = \lambda. \]
+
+Z rozkładem Poissona jest powiązane tzw. prawo małych liczb.
+
+Twierdzenie. Rozważmy liczby $n \in \mathbb{N}, p_n \in (0,1)$, takie że  $lim_{n \rightarrow \infty} np_n = \lambda$ dla pewnej liczby $\lambda \in (0, \infty)$. Wówczas
+\[ lim_{n \rightarrow \infty} \left( \begin{array}{cc} n \\ k \end{array} \right) p_n^k (1-p_n)^{(n-k)} = e^{-\lambda} \frac{\lambda^k}{k!}. \]
+
+Uwaga: W praktyce powyższe twierdzenie jest "efektywne" dla $n\geq 20, p < 0.05$ oraz $n \geq 100, np \leq 10$.
+
+#### Ćwiczenie
+
+1.Wygeneruj próbę z rozkładu Poissona za pomocą *rpois()*, narysuj gęstość tej próby i histogram. 
+
+2.Zweryfikuj powyższe prawo małych liczb empirycznie, generując próby z odpowiednich rozkładów bernouliego i poissona i porównując gęstości, histogramy, statystyki opisowe.
+
+# Rozkład jednostajny
+
+Rozkład jednostajny z parametrami $a,b, \, b>a$ jest najprostszym przykładem rozkładu ciągłego. Jego gęstość wyraża się wzorem
+
+\[ f(x) = \left\{ \begin{array}{ll} \frac{1}{b-a}, & x \in [a,b], \\ 0, & x \notin [a,b]. \end{array} \right. \]
+
+Uwaga: Szczególnie ważnym przypadkiem jest rozkład o parametrach $a=0, b=1$.
+
+Dystrybuanta takiego rozkładu dana jest wzorem
+
+\[ F(x) = \left\{ \begin{array}{ll} 0, & x < a, \\ \frac{x}{b-a}, & a \leq x < b, \\ 1, & b \leq x. \end{array} \right. \]
+
+Próbę z rozkładu jednostajnego generujemy za pomocą funkcji *runif()*.
+
+```{R}
+uniform_sample <- as_tibble(runif(100))
+uniform_sample
+```
+
+#### Ćwiczenie
+
+1. Narysuj gęśtość i histogram powyższej próby. Narysuj również gęstość otrzymaną za pomocą funkcji *dunif()*.
+2. Narysuj dystrybuantę empiryczną i taką otrzymaną za pomocą funkcji *punif()*.
+
+# Rozkład wykładniczy
+
+Rozkład wykładniczy z parameterem $\lambda \in (0, \infty)$ to ciągły odpowiednik rozkładu geometrycznego. Gęstość tego rozkładu wyraża się wzorem
+\[ f(x) = \mathbf{1}_{[0,\infty)}(x) \lambda e^{-\lambda x}.\]
+
+Dystrybuanta dana jest wzorem
+
+\[ F(x) = \left\{ \begin{array}{ll} 0, & x < 0, \\ 1 - e^{-\lambda x}, & x \geq 0.  \end{array} \right. \]
+
+Średnia i wariancja mają postać
+\[ \mathbb{E}X = \frac{1}{\lambda}, \, \mathbb{D}^2X = \frac{1}{\lambda^2}. \]
+
+Próbę z rozkładu wykładniczego generujemy za pomocą funkcji *rexp()*.
+
+#### Ćwiczenie
+
+1. Wygeneruj próby z rozkładu wykładniczego dla różnych $\lambda$, narysuj ich gęstości na jednym obrazku dla porównania. 
+2. Narysuj dystrybuantę rozkładu wykładniczego za pomocą funckji *pexp()*.
+
+# Rozkład normalny
+
+Skupimy swoją uwagę na rozkładzie normalnym już na następnych zajęciach :)

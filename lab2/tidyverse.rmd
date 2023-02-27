@@ -1,0 +1,163 @@
+---
+title: "Regresja i analiza wariancji - suplement"
+author:
+  name: Adrian Kowalski
+  affiliation: Politechnika Krakowska
+subtitle: Tidyverse
+---
+
+# Tidyverse
+
+Tidyverse jest jedną z najpopularniejszych kolekcji pakietów dostępnych dla języka R. Składa się z kilku pakietów, przystosowanych do wykorzystywania ich wspólnie, o podobnej składni. Pełną listę pakietów można znaleźć pod [następującym](https://www.tidyverse.org/packages/) adresem. Na nasze potrzeby, skupimy się przede wszystkim na pakietach *readr*, *dplyr*, *tidyr*, a w późniejszym etapie na pakiecie *ggplot2*.
+
+*Uwaga: Przed funkcjami pochodzących z pakietów, które nie są podstawowymi pakietami R będziemy używać odwołania do nazwy pakietu, mimo że nie jest to konieczne. Pomoże to przede wszystkim w zorientowaniu się, z którego pakietu aktualnie korzystamy.*
+
+Jeżeli tylko na naszym komputerze nie ma jeszcze tidyverse, instalujemy ten zestaw identycznie jak każdy inny pakiet w języku R, czyli poniższym kodem.
+```{r}
+#install.packages('tidyverse')
+```
+Powyższa komenda zainstaluje nam wszystkie pakiety wchodzące w skład tidyverse.
+```{r}
+library(tidyverse)
+```
+
+### Typ tibble
+
+Korzystając z tidyverse mamy do dyspozycji typ danych tibble. Na nasze potrzeby typ danych tibble i data.frame różni się przede wszystkim sposobem wyświetlania danych i kilkoma niuansami technicznymi. Pełną listę różnic można znaleźć w artykułach w [oficjalnej dokumentacji](https://tibble.tidyverse.org/articles/). 
+
+```{r}
+first_frame <- data.frame(
+  name = c('Jan','Anna','Jakub','Krzysztof','Maria'),
+  surname = c('Nowak', 'Kowalska', 'Pień', 'Osa', 'Kozak'),
+  salary = c(6500,4400,21000,12000,9400),
+  position = c('Recruiter', 'IT support', 'Project Manager', 'Developer', 'Developer'),
+  hire_date = as.Date(c('2022-05-01','2022-10-1','2015-05-01','2021-01-01','2022-04-01'))
+)
+print(first_frame)
+```
+```{r}
+second_frame <- rbind(first_frame, first_frame, first_frame, first_frame, first_frame, first_frame)
+print(second_frame)
+```
+```{r}
+first_tibble <- tibble::as_tibble(second_frame)
+print(first_tibble)
+```
+
+```{r}
+third_frame <- data.frame(
+  numbers = c(1, 1.6, 1.61, 1.618, 1.6180, 1.61803, 1.618033, 1.6180339, 1.61803398, 1.618033988, 1.6180339887),
+  numbers2 = c(5, 57, 577, 5772, 57721, 577215, 5772156, 57721566, 577215664, 5772156649, 57721566490)
+)
+print(third_frame)
+```
+```{r}
+second_tibble <- tibble::as_tibble(third_frame)
+print(second_tibble)
+```
+Kolejną zaletą typu tibble jest to, że wycinek obiektu tibble zawsze będzie obiektem tibble. Spójżmy na poniższy przykład.
+```{r}
+third_frame[,1]
+```
+
+```{r}
+second_tibble[,1]
+```
+
+## Readr - ładowanie danych
+
+[Readr](https://readr.tidyverse.org/articles/readr.html) jest pakietem z zestawu tidyverse, który będzie nam służyć do odczytywania danych z pliku. Podstawową funkcjonalnością pakietu readr jest wczytywanie danych od razu do obiektu tibble. Dodatkowo, readr zwraca nam krótki raport z tego co odczytał z pliku, dzięki czemu możemy szybko wykryć błędy podczas wczytywania i je poprawiać.
+
+
+Kolejną zaletą readr jest tzw. *zgadywanie typów*. W momencie, w którym podczas wczytywania danych nie narzucimy z góry typu, który musi się znajdować w danej kolumnie, readr będzie próbować go "odgadnąć". Domyślnie używa do tego jedynie podzbioru (co najwyżej 1000) wierszy, możemy jednak użyć argumentu *guess_max* do modyfikacji tej wartość. W skrajnym przypadku można ustawić *guess_max = Inf*, wtedy readr użyje całego zbioru do ustalenia typu danej kolumny. 
+
+#### Zadanie 1
+
+Wczytaj, bez dodatkowych parametrów dane z pliku **read_ex1.csv**. Czy wynik wygląda poprawnie? Jeżeli nie, to zastanów się co należy poprawić przy wczytywaniu.
+
+### Zadanie 2
+
+Wczytaj dane z pliu **read_ex2.csv** i zastanów się nad problemami, które wystąpiły.
+
+### Zadanie 3
+
+Jak wyżej dla pliku **read_ex3.csv**.
+
+### Zadanie 4
+
+I dla pliku **read_ex4.csv**.
+
+
+## Tidyr - "Sprzątanie" danych
+
+[Tidyr](https://tidyr.tidyverse.org/) jest biblioteką, która ułatwia proces *sprzątania* danych. Sprzątanie danych jest pierwszym podstawowym procesem, który podejmujemy przed jakąkolwiek analizą. Ma on na celu ułatwienie przyszłych transformacji i obliczeń na badanym zbiorze. Podczas sprzątania danych należy kierować się trzema podstawowymi zasadami
+
+1. Każda zmienna ma swoją osobną kolumnę.
+2. Każda obserwacja ma swój osobny wiersz.
+3. Każda wartość ma swoją osobną komórkę. 
+
+Podążając za tymi zasadami łatwiej jest korzystać z wektoryzacji operacji w R. Ponadto, składnia poleceń z pozostałych pakietóW rodziny tidyverse jest znacznie uproszczona, kiedy analizowany zbiór danych jest w tej formie. Najważniejszymi funkcjami pakietu tidyr są *pivot_longer* i *pivot_wider*. 
+
+*Uwaga: Przy transformacjach zbiorów danych przydaje się operator %>%, który podaje jako pierwszy argument do następnej funkcji to co zwróciła poprzednia.*
+
+Czyli w odniesieniu do powyżej uwagi, linjika *x %>% f(y)* jest równoważna z linijką *f(x,y)*.
+
+#### Zadanie 1
+
+Czy dane zawarte w pliku **tidy_ex1.csv** są "posprzątane"? Jeżeli nie, to wykonaj na nich odpowiednie operacje.
+
+
+#### Zadanie 2
+
+Jak powyżej, tylko dla pliku **tidy_ex2.csv**.
+
+### Zadanie 3
+
+Dla ramki z zadania 1 w podrodziale o pakiecie readr zastosuj polecenie *separate* aby rozbić temperature na wartość numeryczną i jednostkę.
+
+
+## Dplyr - Manipulowanie danych
+
+[Dplyr](https://dplyr.tidyverse.org/) jest podstawowym narzędziem do wykonywania transformacji na obiektach tibble. Pozwala w prosty sposób wybierać konkretne kolumny, dodawać nowe kolumny na podstawie starych, grupować dane i wykonywać na nich operacje. Za pomocą poleceń z pakietu dplyr możemy również wybierać dane na podstawie warunków logicznych. Operacje, które możemy wykonywać za pomocą dplyr są bardzo mocno zbliżone do tych, które można wykonwywać za pomocą SQL DQL i SQL DML(do tego stopnia, że istnieje pakiet dbplyr, który tłumaczy polecenia dplyr na SQL).
+
+### Zadanie 1 - mutate
+
+Do (sprzątniętej) ramki z zadania 2 z podrozdziału o tidyr dodaj kolumnę "spread" zawierającą różnicę ceny otwarcia i zamknięcia z danego dnia.
+
+
+### Zadanie 2 - select
+
+Ze (sprzątniętej) ramki z zadania 1 z podrozdziału o tidyr wybierz jedynie kolumne z identyfikatorem i wynikiem z testu z czytania i przypisz je do nowej ramki.
+
+### Zadanie 3 - filter
+
+Z ramki z zadania 1 z podrozdziału o dplyr wybierz te wiersze, które mają dodatnią wartość w kolumnie spread.
+
+### Zadanie 4 - arrange
+
+Ramkę z zadania 1 z podrozdziału o dplyr posortuj rosnąco względem najwyższej ceny dnia.
+
+### Zadanie 5 - relocate
+
+Przenieś kolumnę spread za kolumny High i Low w ramce z zadania 1.
+
+### Zadanie 6 - summarise 
+
+Policz średnie wyniki ze wszystkich testów w poszczególnych grupach dotyczących przygotowania do testów w ramce z zadania 1 dotyczącego tidyr.
+
+### Zadanie 7 
+
+Doprowadź ramkę z rozdziału o readr do porządku :)
+
+### Zadanie podsumowujące
+
+Wczytaj dane z pliku **disney_movies_total_gross.csv**. Pomysły?
+
+
+###### Bibliografia :)  
+
+Dane wykorzystane w tym notatniku pochodzą z:
+
+ - [Disney](https://www.kaggle.com/datasets/thedevastator/disney-character-success-a-comprehensive-analysi?select=disney_movies_total_gross.csv)
+- [Microsoft](https://www.kaggle.com/datasets/berkayalan/microsoft-stock-data-between-2015-and-2022?resource=download)
+- [Students](https://www.kaggle.com/datasets/spscientist/students-performance-in-exams)

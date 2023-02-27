@@ -1,0 +1,86 @@
+---
+title: "Analiza danych - laboratorium 9"
+author:
+  name: Adrian Kowalski
+  affiliation: Politechnika Krakowska
+subtitle: Podstawy danych kategorialnych
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+# Zadanie
+
+W pliku *lab10t.csv* znajdują się dane dotyczące badania na temat dyskryminacji płciowej w pewnej firmie. Do 50 różnych managerów podano 50 różnych profilów pracownika i kazano orzec o promocji danego pracownika. Dział zasobów ludzkich później zadał pytanie "Czy płeć pracownika ma wpływ na szanse na awans?".
+
+```{r, message=FALSE, warning=FALSE}
+promotion <- read_csv('lab10t.csv')
+```
+
+# Test (dokładny) Fishera
+
+Test Fishera polega na randomizacji naszej próby i sprawdzeniu czy efekt wynika z czystej losowości, czy jednak mamy dowody na to, że zachodzi badany efekt. Przyjmujemy więc jako hipotezę zerową, że badany efekt nie zachodzi (czyli proporcje w naszej próbie wynikają wyłącznie z przypadku). 
+
+W tym celu tworzymy tabelę przestawną.
+
+```{r}
+promotion_crosstab <- promotion %>% pivot_longer(1:2, names_to = "gender", values_to = "promoted") %>% group_by(gender, promoted) %>% tally() %>% spread(gender, n)
+```
+
+```{r}
+promotion_crosstab
+```
+
+```{r}
+fisher_crosstab <- promotion_crosstab %>% rowwise() %>% mutate(margin = female+male) 
+fisher_crosstab <- fisher_crosstab %>% add_row(promoted = 'margin', female = sum(fisher_crosstab$female), male = sum(fisher_crosstab$male), margin = sum(fisher_crosstab$margin))
+```
+
+```{r}
+fisher_crosstab
+```
+Przy założeniu hipotezy zerowej marginesy tabelki testu Fishera są ustalone. Proces randomizacji będzie zmieniał zatem jedynie "środek" tabelki, oczywiście warunkowo pod warunkiem marginesów. Zauważmy w takim razie, że jest w tym procesie jedynie jeden stopień swobody (losując jeden parametr z marginesów ustalamy trzy pozostałe). 
+
+Wobec tego skupmy się na ustaleniu jednego z elementów tabelki. Szansa na przyjęcie przez niego konkretnej wartości $n_{11}$ to szansa na wyciągnięcie (bez zwracania) z populacji $50$ elementowej $n$ sukcesów z populacji $28$ sukcesów i $22$ porażek. Zatem jest to rozkład hipergeometryczny!
+
+\[ \mathbb{P}(n_{11}) = \frac{\left( \begin{matrix} n_{1.} \\ n_{11}\end{matrix} \right) \left( \begin{matrix} n_{2.} \\ n_{21}\end{matrix}\right)}{\left( \begin{matrix} n_{..} \\ n_{.1}\end{matrix} \right)}. \]
+
+Użyjemy tej informacji zatem jako naszej statystyki testowej. Znamy jej rozkład pod warunkiem hipotezy zerowej. 
+```{r}
+p_tab <- tibble(numbers=1:25) %>% mutate(prob = round(dhyper(numbers, 22, 28, 25),2)) 
+```
+```{r}
+p_tab
+```
+Porównujemy naszą wartość z próby do wartością z rozkładu przy załóżeniu hipotezy zerowej i podejmujemy na tej podstawie decyzję.
+
+Można też użyć do testu Fishera polecenia z **R**, *fisher.test()*.
+```{r}
+fisher.test(promotion_crosstab[,2:3])
+```
+# Zadanie 2
+
+W pliku **lab10g.csv* znajdują się dane dotyczące pracowników pewnej firmy. Podano informację na temat rodzaju miejsca zamieszkania (dom jednorodzinny, blok) oraz sposobu w jaki dana osoba dojeżdża do pracy (rower, komunikacja miejska, pieszo, autem). Dział zasobów ludzkich zadał pytanie "Czy rodzaj miejsca zamieszkania ma wpływ na środek transportu?"
+
+```{r, warning=FALSE, message=FALSE}
+transport <- read_csv('lab10g.csv')
+```
+
+Test dokładny Fishera jest problematyczny w dużych próbach (dlaczego?), dlatego dla dużych prób musimy się uciec do innych metod. Na szczęście te metody istnieją i są bardzo popularne. Dla dużych prób używamy tzw. testu $\chi^2$ niezależności.
+
+Hipotezą zerową testu $\chi^2$ jest to, że badane zmienne są niezależne. To znaczy, że rozkład łączony danej zmiennej jest równy iloczynowi rozkładów brzegowych. Przy założeniu hipotezy zerowej otrzymujemy więc, że prawdopodobieństwo komórki $i,j$ estymowane za pomocą metody największej wiarygodności $\hat{P}_{ij} = \hat{P}_{i.}\hat{P}_{.j} = \frac{n_{i.}}{n} \cdot \frac{n_{.j}}{n}$. Hipoteza alternatywna, mówiąca o zależności daje nam estymator największej wiarygodności postaći $\hat{P}_{ij} = \frac{n_{ij}}{n}$. Test ilorazu wiarygodności jest asymptotycznie (stąd potrzeba dużej próby) równoważny testowi $\chi^2$ Pearsona. Jego statystyka testowa ma postać
+
+\[ X^2 = \sum_{i=1}^I \sum_{j=1}^J \frac{(O_{ij} - E_{ij})^2}{E_{ij}}, \]
+gdzie $O_{ij}$ to zaobserwowana ilość wartości w komórce $i,j$, $E_{ij}$ to ilość wartości przy założeniu hipotezy zerowej w komórce $i,j$, $I$ oraz $J$ to natomiast ilości kolumn i wierszy.
+
+Ilość stopni swobody statystyki $X^2$ określamy następująco: prawdopodobieństwa w komórkach muszą sumować się do $1$, stąd mamy $IJ - 1$ niezwiązanych parametrów, jednak pod warunkiem hipotezy zerowej prawdopodbieństwa brzegowe są określone za pomocą $(I-1) + (J - 1)$ wolnych parametrów. Stąd końcowa ilość stopni swobody to $IJ - 1 - (I - 1) - (J - 1)=(I-1)(J-1)$.
+
+W **R** test $\chi^2$ niezależności jest zaimplementowany w funkcji *chisq.test()*.
+```{r}
+chisq.test(transport[,2:3])
+```
+Ciekawostka: Testu $\chi^2$ można użyć, aby sprawdzić czy odszyfrowanie zaszyfrowanego tekstu przebiegło pomyślnie!
