@@ -6,7 +6,10 @@ author:
 subtitle: Język R
 output:
   html_document:
+    theme: darkly
     df_print: paged
+    toc: true
+    toc_float: true
 ---
 
 # Język R
@@ -282,3 +285,8 @@ Korzystając z ramki danych *first_frame* wylicz, kto zarabia najwięcej na jedn
 ### Zadanie dodatkowe
 
 Napisz funkcję, która wyznacza największy wspólny dzielnik dwóch liczb całkowitych i przedstawia ich największy wspólny dzielnik jako kombinację liniową.
+
+### Zadanie dodatkowe
+
+Napisz funkcję, która sprawdza czy dana trójka liczb jest trójką pitagorejską. Wśród trójek pitagorejskich znajduje się dokładnie jedna taka, że suma elementów tej trójki wynosi *1000*. Jaki jest iloczyn tych elementów?
+
