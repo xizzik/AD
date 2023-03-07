@@ -1,0 +1,67 @@
+---
+title: "Analiza danych - laboratorium 7"
+subtitle: 'Test t-studenta i przedziały ufności' 
+author: 
+  name: 'Adrian Kowalski'
+  affiliation: 'Politechnika Krakowska'
+output: html_notebook
+---
+
+# Zadanie 
+
+W pliku *lab8dt1.csv* znajdują się wyniki eksperymentu przeprowadzonego przez producenta opon. W kolumnie *opony2* znajdują się wyniki z testów hamowania z prędkości $150 \rm{km/h}$ do prędkości $50 \rm{km/h}$ przy użyciu opon, w których zastosowano innowacyjną technologię. W kolumnie *opony1* znajdują się wyniki identycznych testów przy użyciu standardowych na rynku opon. Jako matematycy pracujący w owej firmie dostajemy pytanie "Czy opłacało się inwestować w nową technologię?". Innymi słowy, czy nowe opony skracają w istotny sposób drogę hamowania?
+
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+library(tidyverse)
+opony <- read_csv('lab8dt1.csv')
+```
+
+# Test t-studenta dla dwóch prób
+
+Oczywiście z pomocą przychodzi nam ponownie test $t$. Tym razem jednak musimy wziąć poprawkę na fakt, że mamy dwie, potencjalnie różne, próby. Zakładamy hipotezę zerową (w naszym wypadku)
+\[ H_0: \mu_1 = \mu_2, \\ H_1: \mu_1 \neq \mu_2.\]
+
+Podobnie jak dla jednej próby chcemy skonstruować statystykę testową, odejmując zakładaną średnią i dzieląc przez błąd standardowy estymatora średniej. Niestety owy błąd standardowy już nie ma tak prostej postaci ja poprzednio. Na początek zakładamy, że nasze próby mają identyczną wariancje (co może wynikać z dobrego projektu eksperymentu). Wówczas statystyka testowa przyjmie postać
+\[ t = \frac{(\bar{X_1} - \bar{X_2}) - (\mu_1 - \mu_2)}{s_p\sqrt{\frac{2}{n}}}, \]
+gdzie $s_p$ to tzw. skumulowane odchylenie standardowe, wyrażone wzorem
+\[ s_p = \sqrt{\frac{s^2_{X_1} + s^2_{X_2}}{2}}. \]
+W takim wypadku statystyka $t$ ma rozkład $t$-studenta o $2n-2$ stopniach swobody.
+
+# Poprawka Welcha
+
+Test $t$ w powyższej postaci zakłada o jednakowej wielkości prób oraz jednakowej wariancji prób. Można się pozbyć tego założenia, stosując tzw. poprawkę Welcha. Wówczas statystyka testowa przyjmuje postać
+\[ t = \frac{(\bar{X_1} - \bar{X_2}) - (\mu_1-\mu_2)}{s_\Delta}, \]
+gdzie 
+\[ s_\Delta = \sqrt{\frac{s^2_1}{n_1} + \frac{s_2^2}{n_2}}. \]
+W takim wypadku statystyka $t$ ma rozkład $t$-studenta o ilości stopni swobody danej wzorem
+\[ df = \frac{\left( \frac{s_1^2}{n_1} + \frac{s_2^2}{n_2} \right)}{ \frac{\left( \frac{s_1^2}{n_1} \right)^2}{n_1 - 1} + \frac{\left( \frac{s_2^2}{n_2} \right)^2}{n_2 - 1}}.\]
+
+Uwaga: Zauważmy, że powyższa liczba na ogół nie jest liczbą całkowitą!
+
+# Bootstrap
+
+Oczywiście zamiast zwykłego testu $t$-studenta możemy wykonać tutaj metodę bootstrap.
+```{r}
+n <- length(opony$opony1)
+bootstrap_stat <- rep(0,5000)
+for(i in 1:5000){
+  curr_sample_1 <- sample(opony$opony1, size=n, replace=TRUE)
+  curr_sample_2 <- sample(opony$opony2, size=n, replace=TRUE)
+  bootstrap_stat[i] <- mean(curr_sample_1) - mean(curr_sample_2)
+}
+bootstrap_stat <- tibble(mean_diff = bootstrap_stat)
+```
+
+```{r}
+ggplot(bootstrap_stat, aes(x=mean_diff)) + geom_histogram(binwidth=0.25) + geom_vline(xintercept=c(quantile(bootstrap_stat$mean_diff, 0.025),quantile(bootstrap_stat$mean_diff, 0.975)), linetype='dashed', color='red')
+```
+
+Zaznaczony czerwonymi liniami obszar to nie tylko obszar decyzyjny, ale także $95\%$ przedział ufności na różnicę średnich w naszych próbach otrzymany za pomocą metody bootstrap. Metodę bootstrap możemy stosować zawsze, dostosowując jedynie ilość prób bootstrap. Jednakże w przypadku testu $t$-studenta mamy również parametryczną postać przedziału ufności.
+
+# Przedział ufności w tescie t-studenta
+
+Dla różnicy średnich bez poprawki Welcha $(1-\alpha)\%$ przedział ufności dany jest wzorem
+
+\[ \left( (\bar{X_1}-\bar{X_2}) - t_{2n-2, \frac{\alpha}{2}} \cdot s_p\sqrt{\frac{2}{n}},(\bar{X_1}-\bar{X_2}) + t_{2n-2, 1 - \frac{\alpha}{2}} \cdot s_p\sqrt{\frac{2}{n}} \right). \]
+Zauważmy, że taki przedział ufności jest symetryczny względem średniej z próby. Jest to dokładnie ten przedział ufności, który zwraca nam funkcja *t.test*.

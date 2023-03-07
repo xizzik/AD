@@ -1,0 +1,136 @@
+---
+title: "Analiza Danych - Laboratorium 5"
+author:
+  name: Adrian Kowalski
+  affiliation: Politechnika Krakowska
+subtitle: Własności rozkładu normalnego
+output:
+  html_document:
+    df_print: paged
+---
+
+# Rozkład normalny
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+Wiele twierdzeń i techink rachunku prawdopodobieństwa sprowadza rozważania na temat próby z dowolnego rozkładu do rozważań na temat próby z rozkładu normalnego. W tym laboratorium poznamy podstawowe własności rozkładu normalnego i dowiemy się nieco na temat tego jakie próby można w przybliżeniu traktować jako pochodzące z rozkładu normalnego. 
+
+Rozkład normalny jest ciągłym rozkładem prawdopodobieństwa, którego nośnikiem jest cały zbiór liczb rzeczywistych. Jego gęstość dana jest wzorem
+\[ f(x) = \frac{1}{\sqrt{2 \pi \sigma}} e^{-\frac{(x - \mu)^2}{2\sigma^2}}, \]
+dla parametrów $\mu \in \mathbb{R}$ i $\sigma > 0$. Gdybyśmy jednak spróbowali wyznaczyć wzór na dystrybuantę tego rozkładu szybko okaże się (przez kilka podstawień), że do policzenia mielibyśmy całkę postaci
+\[ \int_{-\infty}^\infty e^{-x^2} dx,\]
+a jak wiemy, pierwotnej funkcji podcałkowej nie jesteśmy w stanie wyrazić za pomocą funkcji elementarnych. Ze względu jednak na wygodne własności skalowania rozkładu normalnego, wystarczy nam numeryczne przybliżenie jedynie dystrybuanty rozkładu normalnego o parametrach $\mu = 0$ i $\sigma = 1$. Taki rozkład nazywamy **standardowym normalnym**, a jego dystrybuantę oznaczamy symbolem $\Phi$.
+
+W *R* próbę z rozkładu normalnego generujemy za pomocą funkcji *rnorm()* z parametrami *mean = $\mu$* i *sd = $\sigma$*. Wartości gęstości otrzymamy oczywiście za pomocą funkcji *dnorm()*, a dystrybuanty za pomocą *pnorm()*
+
+# Własności liniowe zmiennej o rozkładzie normalnym.
+
+Weźmy zmienną $X$ o rozkładzie normalnym z parametrami $\mu$ i $\sigma$. Wówczas dla ustalonych $a,b \in \mathbb{R}$ zmienna $aX + b$ ma rozkład normalny z parametrami $a\mu + b$ i $|a|\sigma$. Dodatkowym wnioskiem z tego faktu jest to, że zmienna 
+\[ Z = \frac{X - \mu}{\sigma}\]
+ma standardowy rozkład normalny.
+
+#### Ćwiczenie
+Zweryfikuj empirycznie powyższe własności rozkładu normalnego.
+
+# Kombinacje zmiennych losowych o rozkładzie normalnym
+
+Kolejną "porządną" własnością zmiennych o rozkładzie normalnym jest fakt, że jeżeli $X,Y$ są niezależnymi zmiennymi losowymi o rozkładzie normalnym z parametrami odpowiednio $\mu_x, \sigma_x$ i $\mu_y, \sigma_y$, to ich suma $X+Y$ ma rozkład normalny z parametrami $\mu_x + \mu_y$ i $\sigma_x \sigma_y$.
+
+#### Ćwiczenie
+
+Zweryfikuj powyższe twierdzenie empirycznie.
+
+Uwaga: Prawdziwe jest również twierdzenie (zwane twierdzeniem Cramera), że jeżeli zmienna $X$ ma rozkład normalny i możemy ją przedstawić jako sumę niezależnych zmiennych $X = X_1 + X_2$ to zmienne $X_1, X_2$ również mają rozkład normalny.
+
+# Zasada empiryczna/ zasada $3 \sigma$.
+
+Zasada empiryczna, bądź też zasada $3 \sigma$ mówi nam o tym jaka część wartośći rozkładu normalnego znajduje się w odpowiedniej odległości od średniej. Konkretniej, $68%$ wartości leży w odległości jednego odchylenia standardowego od średniej, $95%$ w odległości dwóch, a już $99.7%$ w odległości trzech.
+
+Zwizualizujmy sobie tą zasadę na przykładzie.
+```{r}
+mu <- 3
+sig <- 1
+determine <- Vectorize(function(x, mu, sig){
+  ind <- 1
+  for(n in 1:4){if((x<mu - n*sig)|(x > mu + n*sig)){ind <- ind+1}}; 
+  return(ind)})
+norm_pdf_3s <- tibble(interval=seq((mu-4*sig),(mu+4*sig),0.01)) %>% mutate(density=dnorm(interval, mean=mu, sd=sig)) %>% mutate(part=determine(interval,mu,sig)) %>% arrange(part) %>% mutate(part = as.character(part))
+norm_pdf_3s
+```
+Do zrobienia wykresu użyjemy pakietu [colorspace](https://colorspace.r-forge.r-project.org/articles/ggplot2_color_scales.html#using-the-scales-in-ggplot2).
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(colorspace)
+```
+```{r}
+mean_positions <- norm_pdf_3s %>% group_by(part) %>% summarise(mean=mean(density)) %>% select(2)
+sig_labels <- paste(c(1,2,3,4), rep('sigma',4), c('68%','95%','99.7%','>99.7%'))
+```
+```{r}
+ggplot(data = norm_pdf_3s, aes(x=interval, fill=part)) + geom_ribbon(aes(ymin=0, ymax=density), alpha=0.85) + scale_fill_discrete_sequential(palette='Dark-Mint') + geom_vline(xintercept=mu, linetype='dashed', color='lightgreen') + annotate(geom='text', x=c(1.05*mu,1.05*mu+sig,1.05*mu+2*sig,1.05*mu+3*sig), y=mean_positions[[1]], label=sig_labels, size = 2.5, vjust=-1, hjust=-0.1) + labs(fill='sigma')
+```
+
+#### Zadanie dodatkowe
+
+Zweryfikuj wizualnie fakt, że jeżeli $X,Y$ są niezależnymi zmiennymi o rozkładzie standardowym normalnym to iloraz $\frac{X}{Y}$ ma standardowy rozkład Cauchy'ego.
+
+# Kurtoza i skośność
+
+Kurtoza i skośność są miarami "grubości ogonów" rozkładu. Teoretyczne wzory prezentują się następująco.
+
+1. Kurtoza zmiennej $X$
+\[ \rm{Kurt}(X) = \frac{\mathbb{E}(X - \mathbb{E}X)^4}{(\mathbb{D}^2X)^2}\]
+2. Skośność zmiennej $X$
+\[ \rm{Skew}(X) = \frac{\mathbb{E}(X - \mathbb{E}X)^3}{(\sqrt{\mathbb{D}^2X})^3} \]
+
+Te dwie wartości związane są zależnością $\rm{Kurt}(X) > \rm{Skew}(X)^2 + 1$.
+
+Często również mówi się o "nadwyżkowej kurtozie" wyrażonej wzorem 
+\[ \rm{Kurt}_{\rm{ex}}(X) = \rm{Kurt}(X) - 3. \]
+Wywodzi się to z faktu, że "wzorem" kurtozy jest właśnie rozkład normalny o kurtozie 3. 
+
+Mówimy, że rozkład zmiennej $X$ jest:
+
+1. Mezokurtyczny, jeżeli $\rm{Kurt}_{\rm{ex}}(X) = 0$. Przykład: Dowolny rozkład normalny, rozkład Bernouliego dla $p = \frac{1}{2} + \sqrt{\frac{1}{12}}$.
+2. Platykurtyczny, jeżeli $\rm{Kurt}_{\rm{ex}}(X) <0$. Przykład: Rozkład Bernouliego dla $p= \frac{1}{2}$.
+3. Leptokurtyczny, jeżeli $\rm{Kurt}_{\rm{ex}}(X) >0$. Przykład: Rozkład wykładniczy, rozkład Poissona.
+
+W *R* skośność i kurtozę liczymy za pomocą biblioteki *moments* poleceniami *skewness()* i *kurtosis()*.
+```{r, echo=FALSE, warning=FALSE}
+library(moments)
+```
+
+# wykresy kwartyl-kwartyl
+
+Cennym narzędziem przy diagnozie "normalności" próby jest wykres kwartyl kwartyl. Zestawiamy na nim teoretyczne wartości kwartyli rozkładu normalnego z wartośćiami kwartyli z naszej próby. W idealnej próbie z rozkładu normalnego wówczas, próby będą układać się wzdłuż prostej $y=x$, natomiast wszelkie odchylenia od tej prostej już musimy interpretować indywidualnie.
+
+```{r}
+normal_sample <- tibble(sample = rnorm(1000))
+qqplot1 <- ggplot(data=normal_sample, aes(sample=sample)) + stat_qq() + geom_qq_line() + xlab('Kwantyle teoretyczne') + ylab('Kwantyle empiryczne')
+qqplot1
+```
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(ggpubr)
+```
+```{r}
+ggqqplot(normal_sample$sample)
+```
+W celu stworzenia histogramu, i wykresu qq rozkładu z ujemną skośnością tworzymy generator zmiennej $\rm{max}(U,V)$, gdzie $U,V$ mają rozkład jednostajny na $[0,1]$.
+```{r}
+rmunif <- function(n){
+  temp <- tibble(a = runif(n), b = runif(n)) %>% rowwise() %>% mutate(max=max(a,b)) %>% select(3) %>% ungroup()
+  return(temp[[1]])
+}
+
+```
+
+```{r}
+qqs <- tibble(norm = rnorm(1000), skewposi = rexp(1000), skewnega = rmunif(1000), posiexkurt = rchisq(1000, 4), negaexkurt = runif(1000)) %>% pivot_longer(1:5, names_to = 'type', values_to = 'sample')
+```
+```{r}
+ggplot(data = qqs, aes(sample=sample)) + stat_qq() + geom_qq_line() + facet_wrap(~type, scales = 'free')
+```
+
+```{r}
+ggplot(data = qqs, aes(x=sample, y=type)) + geom_boxplot() + xlim(c(-2,11))
+```

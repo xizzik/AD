@@ -1,0 +1,184 @@
+---
+title: "Analiza Danych - Laboratorium 3"
+author:
+  name: Adrian Kowalski
+  affiliation: Politechnika Krakowska
+subtitle: Podstawy pakietu ggplot2
+output:
+  html_document:
+    df_print: paged
+---
+
+# Pakiet ggplot2  
+
+Pakiet ggplot2 jest integralną częścią zestawu tidyverse. Służy do produkowania wysokiej jakości wizualizacji danych. Jego największą zaletą jest gramatyka bardzo mocno zintegrowana z pozostałymi pakietami tidyverse. Składnia ggplot2 pozwala równiesz na wysoki poziom swobody w dostosowywaniu grafik do własnych potrzeb i realizacji założonych celów. Wszelkich zainteresowanych pogłębieniem wiedzy na temat ggplot2 zachęcam do zaglądnięcia do darmowej [książki](https://ggplot2-book.org/index.html).
+
+# Podstawowe wykresy w ggplot2
+
+Grafika, która powstaje w ggplot2 składa się z trzech głównych części
+
+1. danych,
+2. estetyk (aesthetics),
+3. geometrii (geometry).
+
+Pierwszą rzeczą (oczywiście po wczytaniu pakietu), którą musimy zrobić w celu stworzenia grafiki jest stworzenie "płótna" i "estetyk". 
+
+Płótno tworzymy za pomocą komendy ggplot.
+
+```{r}
+library(tidyverse)
+dataset1 <- readr::read_csv('ggplot_set1.csv')
+print(dataset1)
+```
+
+## Wykres liniowy
+
+```{r}
+dataset1_plot1 <- ggplot(data = dataset1, aes(x = Date, y = Open))
+```
+
+Po zadaniu płótna i estetyk przechodzimy do rysowania. Zadaliśmy estetykę - na osi x będzie data, na osi y natomiat - cena otwarcia z danego dnia. Stworzymy zatem wykres liniowy przedstawiający te ceny otwarcia przy pomocy polecenia geom_line().
+
+```{r}
+dataset1_plot1 <- dataset1_plot1 + geom_line()
+dataset1_plot1
+```
+
+Czas nieco poprawić nasz wykres. Tytuły osi są zaczerpnięte bezpośrednio z nazw estetyk, zmieńmy je na polskie odpowiedniki za pomocą polecenia labs().
+
+```{r}
+dataset1_plot1_labeled <- dataset1_plot1 + labs(title='Cena otwarcia za akcje firmy Microsoft na rok do tyłu.', x='Data',
+                                       y='Cena (w dolarach)')
+dataset1_plot1_labeled
+```
+
+Taki sam efekt można otrzymać za pomocą poleceń xlab(), ylab(), ggtitle().
+
+```{r}
+dataset1_plot1_labeled2 <- dataset1_plot1 + xlab('Data') + ylab('Cena (w dolarach)') + ggtitle('Cena otwarcia za akcje firmy Microsoft na rok do tyłu')
+dataset1_plot1_labeled2
+```
+
+Funkcja labs() ma jedynie przewagę, że w przyszłych zastosowaniach będziemy tam mogli umieszczać również podpisy do legendy.
+
+Etykiety osi i tytuły możemy edytować za pomocą polecenia theme() z odpowiednimi argumentami.
+
+```{r}
+dataset1_plot1_labeled2 <- dataset1_plot1_labeled2 + theme(
+                          plot.title = element_text(hjust=0.45, face='bold'),
+                          axis.title.x = element_text(size=8),
+                          axis.title.y = element_text(size=8)
+                          )
+dataset1_plot1_labeled2
+```
+
+Kolejnym pomysłem, jaki przychodzi do głowy na poprawę tego wykresu jest zagęszczenie skali na osi x.
+
+```{r}
+dataset1_dates_ticks <- dataset1$Date[seq.int(1,length(dataset1$Date), 60)]
+dataset1_plot1_labeled2 <- dataset1_plot1_labeled2 + scale_x_continuous(breaks = dataset1_dates_ticks)
+dataset1_plot1_labeled2
+```
+
+Podpisami możemy manipulować, znowu, za pomocą theme().
+
+```{r}
+dataset1_plot1_labeled2 <- dataset1_plot1_labeled2 + theme(axis.text.x=element_text(angle=90, vjust=0.5))
+dataset1_plot1_labeled2
+```
+Zapanujmy teraz trochę nad skalą na osi y. 
+```{r}
+dataset1_min_open <- floor(min(dataset1$Open)) - 5
+dataset1_max_open <- ceiling(max(dataset1$Open)) + 5
+dataset1_plot1_labeled2 <- dataset1_plot1_labeled2 + scale_y_continuous(limits=c(dataset1_min_open, dataset1_max_open), n.breaks = 10)
+dataset1_plot1_labeled2
+```
+
+Dodamy teraz linie poziome zaznaczające nam minimalną i maksymalną cene otwarcia za pomocą geom_hline().
+
+```{r}
+dataset1_plot1_labeled2 <- dataset1_plot1_labeled2 + geom_hline(yintercept=dataset1_min_open+5, linetype='dashed',
+                                                                color='red', alpha=0.3) +
+                           geom_hline(yintercept=dataset1_max_open-5, linetype='dashed', color='red', alpha=0.3)
+      
+dataset1_plot1_labeled2
+```
+
+Pozostaje jedynie dodać podpisy do naszych linii poziomych. Zrobimy to za pomocą geom_text().
+
+```{r}
+dataset1_plot1_labeled3 <- dataset1_plot1_labeled2 + geom_text(aes(0, dataset1_min_open+5, label=dataset1_min_open+5, vjust=-1), size=2) + geom_text(aes(0, dataset1_max_open-5, label=dataset1_max_open-5, vjust=-1), size=2)
+```
+
+```{R}
+print(dataset1_plot1_labeled3)
+```
+
+Ups, okazuje się, że automatycznie narzucone limity osi x nie są takie jakich byśmy się spodziewali. Możemy zajrzeć do parametrów naszego obiektu przy pomocy ggplot_build().
+
+# Uwaga: ggplot_build() zwraca bardzo dużo parametrów naszego obrazka. Należy najpierw zajrzeć do dokumentacji po potrzebny nam parametr i "wyciągnąć go" manualnie.
+```{r}
+dataset1_plot1_xlims <- ggplot_build(dataset1_plot1_labeled2)$layout$panel_params[[1]]$x.range
+```
+
+```{r}
+dataset1_plot1_labeled3 <- dataset1_plot1_labeled2 + geom_text(aes(dataset1_plot1_xlims[1], dataset1_min_open+5, label=dataset1_min_open+5, vjust=-1), size=2) + geom_text(aes(dataset1_plot1_xlims[1], dataset1_max_open-5, label=dataset1_max_open-5, vjust=-1), size=2)
+```
+
+```{r}
+dataset1_plot1_labeled3
+```
+
+Równie dobrze można było podpisać jedynie znaczniki na osi y. Zrobimy to następującym sposobem.
+
+```{r}
+dataset1_plot1_breaks2 <- sort(c(seq(dataset1_min_open+5, dataset1_max_open - 5, 15), dataset1_max_open -5))
+dataset1_plot1_labeled3 <- dataset1_plot1_labeled3 + scale_y_continuous(breaks= dataset1_plot1_breaks2)
+dataset1_plot1_labeled3
+```
+
+
+## Wiele linii na jednym wykresie
+
+Na jednym wykresie liniowym możemy zamieścić wiele linii.
+
+```{r}
+dataset1_plot2 <- dataset1_plot1 + geom_line(aes(y = Close))
+dataset1_plot2
+```
+```{r}
+dataset1_plot3 <- dataset1_plot1 + geom_line(aes(y=Close), color='red')
+dataset1_plot3
+```
+
+```{r}
+dataset1_plot3 <- dataset1_plot3 + geom_line(aes(y=Low), linetype='dashed', alpha=0.5, color='lightblue')
+dataset1_plot3
+```
+
+```{r}
+dataset1_plot3 <- dataset1_plot3 + geom_line(aes(y=High), linetype='dashed', alpha=0.5, color='pink')
+dataset1_plot3
+```
+
+Istnieje na to również druga, preferowana, metoda. Odpowiednio przygotowując dane do stworzenia wykresu jesteśmy w stanie dużo oszczędniej i w bardziej kontrolowany sposóB przygotować obrazek.
+```{r}
+dataset1_lineplot <- dataset1 %>% pivot_longer(2:5, names_to='price_type', values_to='price') %>% 
+                    mutate(pl_alpha=ifelse((price_type=='High')|(price_type=='Low'), 0.5, 1)) %>%
+                    mutate(pl_linetype=ifelse((price_type=='High')|(price_type=='Low'),'dashed','solid'))
+dataset1_lineplot
+```
+```{r}
+dataset1_plot4 <- ggplot(dataset1_lineplot, aes(x=Date, y=price, color=price_type)) +               geom_line(aes(alpha=pl_alpha, linetype=pl_linetype)) + scale_alpha_identity() + scale_linetype_identity()
+dataset1_plot4
+```
+
+
+# Ćwiczenie
+
+Uzbrojony w powyższe informacje o podstawowych funkcjonalnościach pakietu ggplot2 wykonaj histogram, wykres punktowy z podziałem na kolory i rozmiary punktów oraz wykres pudełkowy korzystając z poniższych danych.
+
+```{r}
+mpg
+```
+Wskazówka: Dokumentacje do danych mpg z pakietu ggplot2 znajdziemy wpisując *?mpg*
