@@ -131,7 +131,7 @@ print(dataset1_plot1_labeled3)
 
 Ups, okazuje się, że automatycznie narzucone limity osi x nie są takie jakich byśmy się spodziewali. Możemy zajrzeć do parametrów naszego obiektu przy pomocy ggplot_build().
 
-# Uwaga: ggplot_build() zwraca bardzo dużo parametrów naszego obrazka. Należy najpierw zajrzeć do dokumentacji po potrzebny nam parametr i "wyciągnąć go" manualnie.
+Uwaga: ggplot_build() zwraca bardzo dużo parametrów naszego obrazka. Należy najpierw zajrzeć do dokumentacji po potrzebny nam parametr i "wyciągnąć go" manualnie.
 ```{r}
 dataset1_plot1_xlims <- ggplot_build(dataset1_plot1_labeled2)$layout$panel_params[[1]]$x.range
 ```
