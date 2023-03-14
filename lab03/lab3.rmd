@@ -6,7 +6,10 @@ author:
 subtitle: Podstawy pakietu ggplot2
 output:
   html_document:
+    theme: darkly
     df_print: paged
+    toc: true
+    toc_float: true
 ---
 
 # Pakiet ggplot2  
@@ -44,7 +47,10 @@ dataset1_plot1 <- dataset1_plot1 + geom_line()
 dataset1_plot1
 ```
 
+### Nazwy osi
+
 Czas nieco poprawić nasz wykres. Tytuły osi są zaczerpnięte bezpośrednio z nazw estetyk, zmieńmy je na polskie odpowiedniki za pomocą polecenia labs().
+
 
 ```{r}
 dataset1_plot1_labeled <- dataset1_plot1 + labs(title='Cena otwarcia za akcje firmy Microsoft na rok do tyłu.', x='Data',
@@ -61,6 +67,8 @@ dataset1_plot1_labeled2
 
 Funkcja labs() ma jedynie przewagę, że w przyszłych zastosowaniach będziemy tam mogli umieszczać również podpisy do legendy.
 
+### Etykiety osi
+
 Etykiety osi i tytuły możemy edytować za pomocą polecenia theme() z odpowiednimi argumentami.
 
 ```{r}
@@ -71,6 +79,8 @@ dataset1_plot1_labeled2 <- dataset1_plot1_labeled2 + theme(
                           )
 dataset1_plot1_labeled2
 ```
+
+### Skale na osiach
 
 Kolejnym pomysłem, jaki przychodzi do głowy na poprawę tego wykresu jest zagęszczenie skali na osi x.
 
@@ -86,13 +96,17 @@ Podpisami możemy manipulować, znowu, za pomocą theme().
 dataset1_plot1_labeled2 <- dataset1_plot1_labeled2 + theme(axis.text.x=element_text(angle=90, vjust=0.5))
 dataset1_plot1_labeled2
 ```
+
 Zapanujmy teraz trochę nad skalą na osi y. 
+
 ```{r}
 dataset1_min_open <- floor(min(dataset1$Open)) - 5
 dataset1_max_open <- ceiling(max(dataset1$Open)) + 5
 dataset1_plot1_labeled2 <- dataset1_plot1_labeled2 + scale_y_continuous(limits=c(dataset1_min_open, dataset1_max_open), n.breaks = 10)
 dataset1_plot1_labeled2
 ```
+
+### Dodatkowe wykresy na tym samym płótnie
 
 Dodamy teraz linie poziome zaznaczające nam minimalną i maksymalną cene otwarcia za pomocą geom_hline().
 
@@ -110,6 +124,7 @@ Pozostaje jedynie dodać podpisy do naszych linii poziomych. Zrobimy to za pomoc
 dataset1_plot1_labeled3 <- dataset1_plot1_labeled2 + geom_text(aes(0, dataset1_min_open+5, label=dataset1_min_open+5, vjust=-1), size=2) + geom_text(aes(0, dataset1_max_open-5, label=dataset1_max_open-5, vjust=-1), size=2)
 ```
 
+
 ```{R}
 print(dataset1_plot1_labeled3)
 ```
@@ -121,9 +136,11 @@ Ups, okazuje się, że automatycznie narzucone limity osi x nie są takie jakich
 dataset1_plot1_xlims <- ggplot_build(dataset1_plot1_labeled2)$layout$panel_params[[1]]$x.range
 ```
 
+
 ```{r}
 dataset1_plot1_labeled3 <- dataset1_plot1_labeled2 + geom_text(aes(dataset1_plot1_xlims[1], dataset1_min_open+5, label=dataset1_min_open+5, vjust=-1), size=2) + geom_text(aes(dataset1_plot1_xlims[1], dataset1_max_open-5, label=dataset1_max_open-5, vjust=-1), size=2)
 ```
+
 
 ```{r}
 dataset1_plot1_labeled3
@@ -138,7 +155,7 @@ dataset1_plot1_labeled3
 ```
 
 
-## Wiele linii na jednym wykresie
+### Wiele linii na jednym wykresie
 
 Na jednym wykresie liniowym możemy zamieścić wiele linii.
 
@@ -182,3 +199,6 @@ Uzbrojony w powyższe informacje o podstawowych funkcjonalnościach pakietu ggpl
 mpg
 ```
 Wskazówka: Dokumentacje do danych mpg z pakietu ggplot2 znajdziemy wpisując *?mpg*
+
+Wskazówka 2: Histogram wykonujemy za pomocą polecenia *geom_hist()*, wykres punktowy *geom_point()*, wykres pudełkowy *geom_boxplot()*.
+
