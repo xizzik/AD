@@ -6,10 +6,13 @@ author:
 subtitle: Przegląd rozkładów prawdopodobieństwa
 output:
   html_document:
+    theme: readable
     df_print: paged
+    toc: true
+    toc_float: true
 ---
 
-W tym notatniku zajmiemy się generowaniem prób z powszechnych rozkładów prawdopodobieństwa, inspekcją ich histogramów i wykresów pudełkowych. Pomoże to nam w przyszłości w wysuwaniu hipotez i podejmowaniu odpowiednich kroków przy analizie szczególnych typów danych. W dalszej części notanika przez $X$ oznaczamy zmienną losową o rozkładzie rozważanym w obecnym rozdziale, przez $A$ dowolny podzbiór $\mathbb{R}$.
+W tym notatniku zajmiemy się generowaniem prób z powszechnych rozkładów prawdopodobieństwa, inspekcją ich histogramów, wykresów pudełkowych i charakterystyk liczbowych. Pomoże to nam w przyszłości w wysuwaniu hipotez i podejmowaniu odpowiednich kroków przy analizie szczególnych typów danych. W dalszej części notanika przez $X$ oznaczamy zmienną losową o rozkładzie rozważanym w obecnym rozdziale, przez $A$ dowolny podzbiór $\mathbb{R}$.
 ```{r, message=FALSE, echo=FALSE}
 library(tidyverse)
 set.seed(196883)
