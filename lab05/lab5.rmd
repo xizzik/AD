@@ -6,7 +6,10 @@ author:
 subtitle: Własności rozkładu normalnego
 output:
   html_document:
+    theme: readable
     df_print: paged
+    toc: true
+    toc_float: true
 ---
 
 # Rozkład normalny
